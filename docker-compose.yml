@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=sqlite:///./data/job_recommendation.db
+      - DEBUG=false
+    volumes:
+      - ./backend/data:/app/data
+      - ./backend/uploads:/app/uploads
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://backend:8000
+    depends_on:
+      - backend
+
+  seed:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: python seed_data.py
+    environment:
+      - DATABASE_URL=sqlite:///./data/job_recommendation.db
+    volumes:
+      - ./backend/data:/app/data
+    depends_on:
+      - backend
+    restart: "no"
